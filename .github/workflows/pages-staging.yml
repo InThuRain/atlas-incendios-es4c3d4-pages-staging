@@ -1,0 +1,62 @@
+name: ES-4C3D4 GitHub Pages same-origin staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: Commit SHA of atlas-incendios containing the C3D4 harness
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          repository: InThuRain/atlas-incendios
+          ref: ${{ inputs.source_ref }}
+          path: atlas
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: atlas/requirements-dev.txt
+      - name: Install dependencies and assemble the current public artifact
+        working-directory: atlas
+        run: |
+          python -m pip install -r requirements-dev.txt
+          python scripts/download_public_data_bundle.py
+          python scripts/build_frontend_profile.py --profile public --output data/web/gva/manifest.json
+          python scripts/build_public_site.py --output data/derived/gva/publication/site
+      - name: Download, SHA-gate and add the immutable PMTiles plus same-origin harness
+        working-directory: atlas
+        run: |
+          mkdir -p .es4c3d4-input
+          curl --fail --location --retry 3 \
+            https://github.com/InThuRain/atlas-incendios/releases/download/national-prototype-staging-es4c3d/esfire30-national-fidelity-territories.pmtiles \
+            --output .es4c3d4-input/esfire30-national-fidelity-territories.pmtiles
+          test "$(stat --printf='%s' .es4c3d4-input/esfire30-national-fidelity-territories.pmtiles)" = "63052056"
+          test "$(sha256sum .es4c3d4-input/esfire30-national-fidelity-territories.pmtiles | cut -d' ' -f1)" = "3c6eb10ba146008cdabf36646d48a4c7a92c1c1357ad90679f6b5dce42013cfe"
+          python scripts/build_es4c3d4_pages_staging.py \
+            --public-site data/derived/gva/publication/site \
+            --pmtiles .es4c3d4-input/esfire30-national-fidelity-territories.pmtiles \
+            --output ../site
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+  deploy:
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
