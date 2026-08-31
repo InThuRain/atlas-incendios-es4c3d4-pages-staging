@@ -43,9 +43,18 @@ jobs:
             --output .es4c3d4-input/esfire30-national-fidelity-territories.pmtiles
           test "$(stat --printf='%s' .es4c3d4-input/esfire30-national-fidelity-territories.pmtiles)" = "63052056"
           test "$(sha256sum .es4c3d4-input/esfire30-national-fidelity-territories.pmtiles | cut -d' ' -f1)" = "3c6eb10ba146008cdabf36646d48a4c7a92c1c1357ad90679f6b5dce42013cfe"
+          curl --fail --location --retry 3 \
+            https://unpkg.com/maplibre-gl@5.16.0/dist/maplibre-gl.js \
+            --output .es4c3d4-input/maplibre-gl-5.16.0.js
+          test "$(sha256sum .es4c3d4-input/maplibre-gl-5.16.0.js | cut -d' ' -f1)" = "5583bab58c44dd3fa1ea7a14cc9da202da873ac0d45ab72edb1428208616fd72"
+          curl --fail --location --retry 3 \
+            https://unpkg.com/pmtiles@4.3.0/dist/pmtiles.js \
+            --output .es4c3d4-input/pmtiles-4.3.0.js
+          test "$(sha256sum .es4c3d4-input/pmtiles-4.3.0.js | cut -d' ' -f1)" = "afc49d216fd24c0a3c0ff3cd2e0c62d6cdaf062854c3dced778dcab168824f79"
           python scripts/build_es4c3d4_pages_staging.py \
             --public-site data/derived/gva/publication/site \
             --pmtiles .es4c3d4-input/esfire30-national-fidelity-territories.pmtiles \
+            --vendor-dir .es4c3d4-input \
             --output ../site
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
