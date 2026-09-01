@@ -11,10 +11,29 @@ on:
         description: SHA-256 of that exact tar.gz package
         required: true
         type: string
-      artifact_fingerprint:
-        description: D4A content fingerprint expected after extraction
+      payload_fingerprint:
+        description: D4A1 payload fingerprint expected after extraction
         required: true
-        default: bbf98006852762c89f1f6ca69093fccdbb1d09fe7fd2de09c15bacf83ff44ee8
+        type: string
+      site_file_count:
+        description: D4A1 physical deployable file count
+        required: true
+        default: "350"
+        type: string
+      site_total_bytes:
+        description: D4A1 physical deployable byte total
+        required: true
+        default: "500450914"
+        type: string
+      asset_manifest_sha256:
+        description: SHA-256 of D4A1 asset-manifest.json
+        required: true
+        default: c2c57a70130fd2e4527ac6a50ebb1c86e73bb667d6c5c5940f9b015b9823aceb
+        type: string
+      site_identity_sha256:
+        description: SHA-256 of D4A1 site-identity.json
+        required: true
+        default: df9b4206eea460942717705559a9705a9fae7fc3039436c199e09118a2019401
         type: string
 
 permissions:
@@ -36,7 +55,11 @@ jobs:
           echo "$PACKAGE_SHA256  $RUNNER_TEMP/national-pages-staging.tar.gz" | sha256sum --check --strict
       - name: Extract and verify the D4A content contract
         env:
-          ARTIFACT_FINGERPRINT: ${{ inputs.artifact_fingerprint }}
+          PAYLOAD_FINGERPRINT: ${{ inputs.payload_fingerprint }}
+          SITE_FILE_COUNT: ${{ inputs.site_file_count }}
+          SITE_TOTAL_BYTES: ${{ inputs.site_total_bytes }}
+          ASSET_MANIFEST_SHA256: ${{ inputs.asset_manifest_sha256 }}
+          SITE_IDENTITY_SHA256: ${{ inputs.site_identity_sha256 }}
         run: |
           mkdir site
           tar --extract --gzip --file "$RUNNER_TEMP/national-pages-staging.tar.gz" --directory site
@@ -46,10 +69,16 @@ jobs:
           from pathlib import Path
 
           root = Path("site")
-          manifest = json.loads((root / "asset-manifest.json").read_text(encoding="utf-8"))
-          assert manifest["file_count"] == 349, manifest["file_count"]
-          assert manifest["total_bytes"] == 500449810, manifest["total_bytes"]
-          assert manifest["fingerprint"]["sha256"] == __import__("os").environ["ARTIFACT_FINGERPRINT"]
+          environment = __import__("os").environ
+          manifest_path = root / "asset-manifest.json"
+          identity_path = root / "site-identity.json"
+          manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+          identity = json.loads(identity_path.read_text(encoding="utf-8"))
+          assert manifest["schema_version"] == "es4d4a-national-pages-artifact-v2"
+          assert identity["schema_version"] == "es4d4a-site-identity-v1"
+          assert manifest["payload_fingerprint"]["sha256"] == environment["PAYLOAD_FINGERPRINT"]
+          assert hashlib.sha256(manifest_path.read_bytes()).hexdigest() == environment["ASSET_MANIFEST_SHA256"]
+          assert hashlib.sha256(identity_path.read_bytes()).hexdigest() == environment["SITE_IDENTITY_SHA256"]
           assert manifest["pmtiles"]["bytes"] == 63052056
           assert manifest["pmtiles"]["sha256"] == "3c6eb10ba146008cdabf36646d48a4c7a92c1c1357ad90679f6b5dce42013cfe"
 
@@ -61,12 +90,25 @@ jobs:
               digest = hashlib.sha256(path.read_bytes()).hexdigest()
               assert path.is_file() and path.stat().st_size == row["bytes"] and digest == row["sha256"], row["runtime_path"]
               fingerprint_rows.append(f"{row['runtime_path']}\t{row['bytes']}\t{row['sha256']}\n")
-          actual = {path.relative_to(root).as_posix() for path in root.rglob("*") if path.is_file() and path.name != "asset-manifest.json"}
-          assert actual == expected
-          assert len(actual) + 1 == manifest["file_count"]
-          assert sum(path.stat().st_size for path in root.rglob("*") if path.is_file()) == manifest["total_bytes"]
+          actual = {path.relative_to(root).as_posix() for path in root.rglob("*") if path.is_file() and not path.is_symlink()}
+          assert actual == expected | {"asset-manifest.json", "site-identity.json"}
+          assert len(actual) == int(environment["SITE_FILE_COUNT"])
+          assert sum(path.stat().st_size for path in root.rglob("*") if path.is_file() and not path.is_symlink()) == int(environment["SITE_TOTAL_BYTES"])
+          assert identity["site_file_count"] == int(environment["SITE_FILE_COUNT"])
+          assert identity["site_total_bytes"] == f"{int(environment['SITE_TOTAL_BYTES']):020d}"
+          assert identity["payload_file_count"] == len(expected) == manifest["payload_file_count"]
+          assert identity["payload_total_bytes"] == sum(row["bytes"] for row in manifest["files"]) == manifest["payload_total_bytes"]
+          assert identity["payload_fingerprint"]["sha256"] == manifest["payload_fingerprint"]["sha256"]
+          assert identity["asset_manifest"]["sha256"] == hashlib.sha256(manifest_path.read_bytes()).hexdigest()
           fingerprint = hashlib.sha256("".join(sorted(fingerprint_rows)).encode("utf-8")).hexdigest()
-          assert fingerprint == manifest["fingerprint"]["sha256"]
+          assert fingerprint == manifest["payload_fingerprint"]["sha256"]
+          print(json.dumps({
+              "runner_site_file_count": len(actual),
+              "runner_site_total_bytes": sum(path.stat().st_size for path in root.rglob("*") if path.is_file() and not path.is_symlink()),
+              "runner_payload_fingerprint": fingerprint,
+              "runner_manifest_sha256": hashlib.sha256(manifest_path.read_bytes()).hexdigest(),
+              "runner_site_identity_sha256": hashlib.sha256(identity_path.read_bytes()).hexdigest(),
+          }, sort_keys=True))
           PY
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
