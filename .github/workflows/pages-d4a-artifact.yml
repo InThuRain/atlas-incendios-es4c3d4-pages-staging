@@ -1,0 +1,83 @@
+name: ES-4D4B deploy approved national artifact
+
+on:
+  workflow_dispatch:
+    inputs:
+      package_url:
+        description: Public staging-release URL of the D4A tar.gz package
+        required: true
+        type: string
+      package_sha256:
+        description: SHA-256 of that exact tar.gz package
+        required: true
+        type: string
+      artifact_fingerprint:
+        description: D4A content fingerprint expected after extraction
+        required: true
+        default: bbf98006852762c89f1f6ca69093fccdbb1d09fe7fd2de09c15bacf83ff44ee8
+        type: string
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Download the approved D4A package and verify its transport SHA
+        env:
+          PACKAGE_URL: ${{ inputs.package_url }}
+          PACKAGE_SHA256: ${{ inputs.package_sha256 }}
+        run: |
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/national-pages-staging.tar.gz" "$PACKAGE_URL"
+          echo "$PACKAGE_SHA256  $RUNNER_TEMP/national-pages-staging.tar.gz" | sha256sum --check --strict
+      - name: Extract and verify the D4A content contract
+        env:
+          ARTIFACT_FINGERPRINT: ${{ inputs.artifact_fingerprint }}
+        run: |
+          mkdir site
+          tar --extract --gzip --file "$RUNNER_TEMP/national-pages-staging.tar.gz" --directory site
+          python3 - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+
+          root = Path("site")
+          manifest = json.loads((root / "asset-manifest.json").read_text(encoding="utf-8"))
+          assert manifest["file_count"] == 349, manifest["file_count"]
+          assert manifest["total_bytes"] == 500449810, manifest["total_bytes"]
+          assert manifest["fingerprint"]["sha256"] == __import__("os").environ["ARTIFACT_FINGERPRINT"]
+          assert manifest["pmtiles"]["bytes"] == 63052056
+          assert manifest["pmtiles"]["sha256"] == "3c6eb10ba146008cdabf36646d48a4c7a92c1c1357ad90679f6b5dce42013cfe"
+
+          expected = set()
+          fingerprint_rows = []
+          for row in manifest["files"]:
+              path = root / row["runtime_path"]
+              expected.add(row["runtime_path"])
+              digest = hashlib.sha256(path.read_bytes()).hexdigest()
+              assert path.is_file() and path.stat().st_size == row["bytes"] and digest == row["sha256"], row["runtime_path"]
+              fingerprint_rows.append(f"{row['runtime_path']}\t{row['bytes']}\t{row['sha256']}\n")
+          actual = {path.relative_to(root).as_posix() for path in root.rglob("*") if path.is_file() and path.name != "asset-manifest.json"}
+          assert actual == expected
+          assert len(actual) + 1 == manifest["file_count"]
+          assert sum(path.stat().st_size for path in root.rglob("*") if path.is_file()) == manifest["total_bytes"]
+          fingerprint = hashlib.sha256("".join(sorted(fingerprint_rows)).encode("utf-8")).hexdigest()
+          assert fingerprint == manifest["fingerprint"]["sha256"]
+          PY
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+  deploy:
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
