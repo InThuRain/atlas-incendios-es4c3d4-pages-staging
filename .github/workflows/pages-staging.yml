@@ -1,10 +1,22 @@
-name: ES-4C3D4 GitHub Pages same-origin staging
+name: ES-4E4A exact national product staging
 
 on:
   workflow_dispatch:
     inputs:
       source_ref:
-        description: Commit SHA of atlas-incendios containing the C3D4 harness
+        description: Commit SHA of atlas-incendios containing the E4A checker
+        required: true
+        type: string
+      transport_url:
+        description: Immutable GitHub Release URL of the E4A transport archive
+        required: true
+        type: string
+      transport_sha256:
+        description: SHA-256 expected for the transport archive
+        required: true
+        type: string
+      transport_bytes:
+        description: Exact byte size expected for the transport archive
         required: true
         type: string
 
@@ -14,58 +26,40 @@ permissions:
   id-token: write
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v5
         with:
           repository: InThuRain/atlas-incendios
           ref: ${{ inputs.source_ref }}
           path: atlas
-      - uses: actions/setup-python@v6
+      - name: Download exact accepted-site transport
+        run: |
+          curl --fail --location --retry 3 --retry-delay 2 \
+            "${{ inputs.transport_url }}" --output national-product-staging.tar
+          test "$(stat --printf='%s' national-product-staging.tar)" = "${{ inputs.transport_bytes }}"
+          test "$(sha256sum national-product-staging.tar | cut -d' ' -f1)" = "${{ inputs.transport_sha256 }}"
+          printf 'transport_bytes=%s\ntransport_sha256=%s\n' \
+            "${{ inputs.transport_bytes }}" "${{ inputs.transport_sha256 }}" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Extract and gate the accepted site identity
+        working-directory: atlas
+        run: |
+          mkdir ../site
+          tar --extract --file ../national-product-staging.tar --directory ../site --no-same-owner
+          python scripts/check_national_product_artifact.py --artifact ../site --output ../runner-site-identity.json | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Preserve runner identity evidence
+        uses: actions/upload-artifact@v4
         with:
-          python-version: '3.11'
-          cache: pip
-          cache-dependency-path: atlas/requirements-dev.txt
-      - name: Install dependencies and assemble the current public artifact
-        working-directory: atlas
-        run: |
-          python -m pip install -r requirements-dev.txt
-          python scripts/download_public_data_bundle.py
-          python scripts/build_frontend_profile.py --profile public --output data/web/gva/manifest.json
-          python scripts/build_public_site.py --output data/derived/gva/publication/site
-      - name: Download, SHA-gate and add the immutable PMTiles plus same-origin harness
-        working-directory: atlas
-        run: |
-          mkdir -p .es4c3d4-input
-          curl --fail --location --retry 3 \
-            https://github.com/InThuRain/atlas-incendios/releases/download/national-prototype-staging-es4c3d/esfire30-national-fidelity-territories.pmtiles \
-            --output .es4c3d4-input/esfire30-national-fidelity-territories.pmtiles
-          test "$(stat --printf='%s' .es4c3d4-input/esfire30-national-fidelity-territories.pmtiles)" = "63052056"
-          test "$(sha256sum .es4c3d4-input/esfire30-national-fidelity-territories.pmtiles | cut -d' ' -f1)" = "3c6eb10ba146008cdabf36646d48a4c7a92c1c1357ad90679f6b5dce42013cfe"
-          curl --fail --location --retry 3 \
-            https://unpkg.com/maplibre-gl@5.16.0/dist/maplibre-gl.js \
-            --output .es4c3d4-input/maplibre-gl-5.16.0.js
-          test "$(sha256sum .es4c3d4-input/maplibre-gl-5.16.0.js | cut -d' ' -f1)" = "5583bab58c44dd3fa1ea7a14cc9da202da873ac0d45ab72edb1428208616fd72"
-          curl --fail --location --retry 3 \
-            https://unpkg.com/pmtiles@4.3.0/dist/pmtiles.js \
-            --output .es4c3d4-input/pmtiles-4.3.0.js
-          test "$(sha256sum .es4c3d4-input/pmtiles-4.3.0.js | cut -d' ' -f1)" = "afc49d216fd24c0a3c0ff3cd2e0c62d6cdaf062854c3dced778dcab168824f79"
-          python scripts/build_es4c3d4_pages_staging.py \
-            --public-site data/derived/gva/publication/site \
-            --pmtiles .es4c3d4-input/esfire30-national-fidelity-territories.pmtiles \
-            --vendor-dir .es4c3d4-input \
-            --output ../site
+          name: es4e4a-runner-identity
+          path: runner-site-identity.json
+          if-no-files-found: error
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site
-  deploy:
-    needs: build
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    steps:
       - id: deployment
         uses: actions/deploy-pages@v4
