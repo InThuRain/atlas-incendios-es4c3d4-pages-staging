@@ -1,29 +1,30 @@
-name: ES-4E4A exact national product staging
+name: ES-4POST4 fixed POST2 patch staging
 
 on:
   workflow_dispatch:
-    inputs:
-      source_ref:
-        description: Commit SHA of atlas-incendios containing the E4A checker
-        required: true
-        type: string
-      transport_url:
-        description: Immutable GitHub Release URL of the E4A transport archive
-        required: true
-        type: string
-      transport_sha256:
-        description: SHA-256 expected for the transport archive
-        required: true
-        type: string
-      transport_bytes:
-        description: Exact byte size expected for the transport archive
-        required: true
-        type: string
 
 permissions:
   contents: read
   pages: write
   id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  SOURCE_REPOSITORY: InThuRain/atlas-incendios
+  SOURCE_REF: 84cbc9e43f2b1555a84b17cd5b94643b0b31eb1c
+  TRANSPORT_URL: https://github.com/InThuRain/atlas-incendios-es4c3d4-pages-staging/releases/download/national-product-post2-staging-es4post4/national-product-post2-patch.tar.gz
+  TRANSPORT_SHA256: 8903bc91de088e82b7c3410d6b2d2e0a5eda64889ffdcc02569319fcc14e45af
+  TRANSPORT_BYTES: "431670756"
+  SITE_FILE_COUNT: "500"
+  SITE_TOTAL_BYTES: "812540623"
+  PAYLOAD_FILE_COUNT: "498"
+  PAYLOAD_TOTAL_BYTES: "812320501"
+  PAYLOAD_FINGERPRINT: 97821c6cf3a6282a6304a0ac02c8eb0c0fff762a293de655dde64511c3169d82
+  ASSET_MANIFEST_SHA256: 557c662dd23df2207f68b6ef36ddae35f0d06b069864ffbb8b3b53ded7a59bd0
+  SITE_IDENTITY_SHA256: f8fe88d66313931d2ed318723334d45062f23cc72f86538835a6df638ba785a1
 
 jobs:
   deploy:
@@ -34,28 +35,54 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          repository: InThuRain/atlas-incendios
-          ref: ${{ inputs.source_ref }}
+          repository: ${{ env.SOURCE_REPOSITORY }}
+          ref: ${{ env.SOURCE_REF }}
           path: atlas
-      - name: Download exact accepted-site transport
+      - name: Download fixed POST2 patch transport
         run: |
           curl --fail --location --retry 3 --retry-delay 2 \
-            "${{ inputs.transport_url }}" --output national-product-staging.tar
-          test "$(stat --printf='%s' national-product-staging.tar)" = "${{ inputs.transport_bytes }}"
-          test "$(sha256sum national-product-staging.tar | cut -d' ' -f1)" = "${{ inputs.transport_sha256 }}"
+            "$TRANSPORT_URL" --output national-product-post2-patch.tar.gz
+          test "$(stat --printf='%s' national-product-post2-patch.tar.gz)" = "$TRANSPORT_BYTES"
+          test "$(sha256sum national-product-post2-patch.tar.gz | cut -d' ' -f1)" = "$TRANSPORT_SHA256"
           printf 'transport_bytes=%s\ntransport_sha256=%s\n' \
-            "${{ inputs.transport_bytes }}" "${{ inputs.transport_sha256 }}" | tee -a "$GITHUB_STEP_SUMMARY"
-      - name: Extract and gate the accepted site identity
+            "$TRANSPORT_BYTES" "$TRANSPORT_SHA256" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Extract and gate the fixed POST2 site identity
         working-directory: atlas
         run: |
           mkdir ../site
-          tar --extract --file ../national-product-staging.tar --directory ../site --no-same-owner
+          tar --extract --gzip --file ../national-product-post2-patch.tar.gz --directory ../site --no-same-owner --no-same-permissions
           python scripts/check_national_product_artifact.py --artifact ../site --output ../runner-site-identity.json | tee -a "$GITHUB_STEP_SUMMARY"
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          identity = json.loads(Path('../runner-site-identity.json').read_text(encoding='utf-8'))['primary']
+          expected = {
+              'valid': True,
+              'site_file_count': int(os.environ['SITE_FILE_COUNT']),
+              'site_total_bytes': int(os.environ['SITE_TOTAL_BYTES']),
+              'payload_file_count': int(os.environ['PAYLOAD_FILE_COUNT']),
+              'payload_total_bytes': int(os.environ['PAYLOAD_TOTAL_BYTES']),
+              'payload_fingerprint': os.environ['PAYLOAD_FINGERPRINT'],
+              'asset_manifest_sha256': os.environ['ASSET_MANIFEST_SHA256'],
+              'site_identity_sha256': os.environ['SITE_IDENTITY_SHA256'],
+          }
+          actual = {key: identity.get(key) for key in expected}
+          if actual != expected:
+              raise SystemExit(f'fixed POST2 identity mismatch: {actual}')
+          Path('../fixed-post2-gate.json').write_text(
+              json.dumps({'expected': expected, 'actual': actual, 'valid': True}, sort_keys=True) + '\n',
+              encoding='utf-8',
+          )
+          PY
       - name: Preserve runner identity evidence
         uses: actions/upload-artifact@v4
         with:
-          name: es4e4a-runner-identity
-          path: runner-site-identity.json
+          name: es4post4-runner-identity
+          path: |
+            runner-site-identity.json
+            fixed-post2-gate.json
           if-no-files-found: error
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
