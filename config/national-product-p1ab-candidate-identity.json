@@ -1,0 +1,16 @@
+{
+  "source_commit": "203c863c57de5cc97961874a9c20a56c7bd32ab4",
+  "archive": {
+    "bytes": 431674265,
+    "sha256": "95cd414775e2663557ff023670c1ffc71a2fa779957079492ca9fb8b8873700a"
+  },
+  "site": {
+    "site_file_count": 501,
+    "site_total_bytes": 812552529,
+    "payload_file_count": 499,
+    "payload_total_bytes": 812332051,
+    "payload_fingerprint": "4e553fe9fa7712c41d40d69d2bae44d75984f3a0aabd018583d58cd132a00f86",
+    "asset_manifest_sha256": "dbad0f3fb638d9c038f1fd9b7a42bb80f6650aad6af6d2aef518acfbb0f67711",
+    "site_identity_sha256": "3eda16ba6f63a8c0a9acf9c7c8a3e7ea518b4e586e900c2a2075370047eeba88"
+  }
+}
