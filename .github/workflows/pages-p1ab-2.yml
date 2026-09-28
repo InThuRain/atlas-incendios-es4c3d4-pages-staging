@@ -1,0 +1,33 @@
+name: P1 A+B fixed staging 2
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Download immutable revalidated P1AB transport
+        run: curl --fail --location --retry 3 --output p1ab.tar.gz https://github.com/InThuRain/atlas-incendios-es4c3d4-pages-staging/releases/download/national-product-v1.0.2-staging-p1ab-2/national-product-p1ab-revalidation-candidate.tar.gz
+      - name: Gate transport, safe extraction and physical site identity
+        run: python3 scripts/check_national_product_release_gate.py --contract config/national-product-p1ab-candidate-identity.json --archive p1ab.tar.gz --extract-to site --output runner-p1ab-2-gate.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: p1ab-2-runner-identity
+          path: runner-p1ab-2-gate.json
+          if-no-files-found: error
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deployment
+        uses: actions/deploy-pages@v4
