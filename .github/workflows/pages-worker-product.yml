@@ -1,0 +1,35 @@
+name: Worker PMTiles product candidate staging
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Reuse accepted P1AB ICV transport without creating a release
+        run: curl --fail --location --retry 3 --output p1ab-icv.tar.gz https://github.com/InThuRain/atlas-incendios-es4c3d4-pages-staging/releases/download/national-product-v1.0.2-staging-p1ab-icv/national-product-p1ab-icv-candidate.tar.gz
+      - name: Verify the unchanged reference
+        run: python3 scripts/check_national_product_release_gate.py --contract config/national-product-p1ab-icv-candidate-identity.json --archive p1ab-icv.tar.gz --extract-to site --output runner-reference-gate.json
+      - name: Apply only the verified delivery overlay
+        run: python3 scripts/apply_worker_product_overlay.py --site site --overlay worker-product-overlay --output runner-worker-gate.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: worker-product-runner-identity
+          path: runner-*-gate.json
+          if-no-files-found: error
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deployment
+        uses: actions/deploy-pages@v4
