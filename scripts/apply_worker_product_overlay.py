@@ -6,7 +6,7 @@ import shutil
 from pathlib import Path
 import check_national_product_artifact as checker
 
-BASE_MANIFEST = 'bd61ca2628ffbfd51540471995fea13c23fdbe557bed6ba62f33a0c342ca153d0'
+BASE_MANIFEST = 'bd61ca2628ffbfd51540471995fea13c23b9c300ecf31fd15ddcb386551005c7'
 FINAL_MANIFEST = '247efe57d65c95d62e752fdc93a3db6486820440f36962f9e44556c4b7e8131b'
 FINAL_IDENTITY = '48d481dea0a99932886b867097bc47ec3619655be4834528a6f9e9f7b1bf6a3f'
 HOST = 'https://atlas-incendios-pmtiles.danisaezbuedo.workers.dev'
