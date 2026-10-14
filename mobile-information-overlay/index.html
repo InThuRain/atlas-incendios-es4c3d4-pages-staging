@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Atlas histórico nacional de incendios registrados y perímetros disponibles.">
+    <title>Atlas histórico de incendios · España</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main id="national-product-shell" class="national-product-shell">
+      <header class="product-header">
+        <div class="brand-block">
+          <span class="eyebrow">Atlas histórico de incendios</span>
+          <strong id="header-territory">España</strong>
+        </div>
+        <p class="header-period"><span class="visually-hidden">Periodo:</span><strong id="header-period">1985–2021</strong></p>
+        <button id="copy-state-link" class="share-button" type="button">Compartir</button>
+        <p id="copy-state-status" class="copy-status" aria-live="polite"></p>
+      </header>
+
+      <section class="map-region" aria-label="Exploración cartográfica">
+        <div id="map" aria-label="Mapa nacional de perímetros de incendios disponibles"></div>
+        <div id="mobile-map-toolbar" class="mobile-map-toolbar" aria-label="Controles del mapa">
+          <div id="mobile-territory-route"></div>
+          <p id="mobile-map-period" class="mobile-map-period"></p>
+          <div class="mobile-map-actions">
+            <button id="toggle-explorer" type="button" aria-controls="explorer-panel" aria-expanded="false">Controles</button>
+            <button id="toggle-map-legend" type="button" aria-controls="user-map-legend" aria-expanded="false">Leyenda</button>
+            <button id="toggle-map-focus" type="button" aria-pressed="false">Mapa completo</button>
+          </div>
+        </div>
+        <p class="map-context" aria-live="polite"><strong id="map-context-territory">España</strong><span>Contexto Protomaps/OSM · límites administrativos BDLJE/IGN</span></p>
+        <p class="map-attribution"><a href="https://protomaps.com/" rel="license noopener">Protomaps</a> · <a href="https://www.openstreetmap.org/copyright" rel="license noopener">© OpenStreetMap contributors</a> · <a href="https://www.ign.es/" rel="license noopener">Obra derivada de BDLJE CC-BY 4.0 ign.es</a></p>
+        <aside class="map-legend" aria-labelledby="map-legend-title">
+          <h2 id="map-legend-title">Leyenda</h2>
+          <ul id="user-map-legend"></ul>
+        </aside>
+      </section>
+
+      <aside id="explorer-panel" class="explorer-panel" aria-label="Exploración del Atlas nacional">
+        <section class="primary-controls" aria-labelledby="explore-title">
+          <div class="section-heading">
+            <div><h1 id="explore-title">Territorio y periodo</h1></div>
+          </div>
+          <p id="municipal-load-feedback" class="municipal-load-feedback" role="status" aria-live="polite" aria-atomic="true"></p>
+          <nav id="territory-breadcrumb" class="territory-breadcrumb" aria-label="Ruta territorial"></nav>
+          <fieldset class="scope-filter">
+            <legend>Territorio</legend>
+            <label>Comunidad o ciudad autónoma <select id="territory-scope"><option value="ES">España</option></select></label>
+            <label id="province-scope-container" hidden>Provincia <select id="province-scope"></select></label>
+            <label id="municipality-scope-container" hidden>Municipio <select id="municipality-scope"></select></label>
+          </fieldset>
+          <fieldset class="year-filter">
+            <legend>Periodo</legend>
+            <label>Desde <input id="from-year" type="number" min="1968" max="2026" value="1985" inputmode="numeric"></label>
+            <label>Hasta <input id="to-year" type="number" min="1968" max="2026" value="2021" inputmode="numeric"></label>
+            <button id="apply-years" type="button">Ver periodo</button>
+          </fieldset>
+          <p id="territory-public-status" class="public-message" aria-live="polite"></p>
+        </section>
+
+        <section class="summary-section" aria-labelledby="summary-title">
+          <div class="section-heading"><h2 id="summary-title">Resumen del periodo</h2></div>
+          <div id="active-filter-chips" class="filter-chips" aria-label="Filtros activos"></div>
+          <div id="summary-cards" class="summary-cards" aria-live="polite"></div>
+          <p id="summary-loading-status" class="summary-status" aria-live="polite">Cargando el resumen de este territorio…</p>
+          <p id="human-coverage-message" class="public-message" aria-live="polite"></p>
+
+          <details id="summary-more-data" class="summary-more-data" hidden>
+            <summary>Más datos del periodo</summary>
+            <div id="summary-complementary-cards" class="summary-cards"></div>
+            <dl id="summary-secondary-metrics" class="human-metrics"></dl>
+          </details>
+          <div class="egif-summary" aria-live="polite" hidden>
+            <p id="egif-human-status">Preparando los registros disponibles…</p>
+            <dl id="egif-human-metrics" class="human-metrics"></dl>
+            <p class="independence-note">Los registros administrativos y los perímetros cartografiados son conjuntos independientes: no se suman ni implican una correspondencia automática.</p>
+            <div class="runtime-diagnostics" hidden aria-hidden="true">
+              <p id="egif-status">Preparando resumen…</p><dl id="egif-metrics" hidden></dl>
+            </div>
+          </div>
+        </section>
+
+        <section id="timeline-slot" class="product-slot" aria-labelledby="timeline-title" data-status="awaiting-data">
+          <div class="section-heading"><h2 id="timeline-title">A lo largo del tiempo</h2></div>
+          <div id="timeline-source-slot" class="histogram-panel">
+            <div id="histogram-series-tabs" class="histogram-tabs" role="tablist" aria-label="Métrica y fuente de la evolución anual"></div>
+            <p id="histogram-status" class="histogram-status" aria-live="polite">Cargando la evolución anual…</p>
+            <div class="histogram-plot" aria-labelledby="timeline-title histogram-status">
+              <div id="histogram-chart" class="histogram-chart"></div>
+              <div id="histogram-ticks" class="histogram-ticks" aria-hidden="true"></div>
+            </div>
+            <output id="histogram-tooltip" class="histogram-tooltip" aria-live="polite">Selecciona o enfoca un año para consultar su valor.</output>
+            <details class="histogram-table-details"><summary>Ver datos anuales en tabla</summary><div class="record-table-wrap"><table><thead><tr><th>Año</th><th>Valor y fuente</th></tr></thead><tbody id="histogram-data-body"></tbody></table></div></details>
+          </div>
+        </section>
+
+        <section id="highlights-slot" class="product-slot highlights-section" aria-labelledby="highlights-title" data-status="loading">
+          <div class="section-heading"><h2 id="highlights-title">Destacados del periodo</h2></div>
+          <p id="highlights-contract" class="highlights-contract"></p>
+          <p id="highlights-status" class="highlights-status" aria-live="polite">Preparando destacados…</p>
+          <ol id="highlights-list" class="highlights-list"></ol>
+          <button id="highlights-more" class="highlights-more" type="button" hidden>Ver más</button>
+          <p class="independence-note">Cada lista pertenece a una sola fuente y usa una única magnitud documentada.</p>
+        </section>
+
+        <section id="filters-slot" class="product-slot" aria-labelledby="filters-title" data-status="awaiting-contract">
+          <div class="section-heading"><div><span class="section-kicker">Afinar</span><h2 id="filters-title">Filtros por fuente</h2></div><button id="open-filters" class="filter-open" type="button" aria-expanded="false" aria-controls="filter-panel">Filtros</button></div>
+          <p class="independence-note">Cada filtro modifica únicamente los datos de la fuente indicada.</p>
+          <section id="filter-panel" class="filter-panel" aria-labelledby="filter-panel-title" hidden tabindex="-1">
+            <header><h3 id="filter-panel-title">Afinar resultados</h3><button id="close-filters" type="button" aria-label="Cerrar filtros">Cerrar</button></header>
+            <form id="safe-filter-form">
+              <div id="safe-filter-groups"></div>
+              <div class="filter-actions"><button class="filter-apply" type="submit">Aplicar filtros</button><button id="clear-filters" type="button" hidden>Limpiar filtros</button></div>
+            </form>
+            <p id="filter-status" class="filter-status" aria-live="polite"></p>
+          </section>
+        </section>
+
+        <section class="layers-section" aria-labelledby="layers-title">
+          <div class="section-heading"><h2 id="layers-title">Capas del mapa y registros</h2></div>
+          <fieldset class="source-filter"><legend>Fuentes activas</legend>
+            <label data-source-card="esfire30"><input id="esfire30-visible" type="checkbox" checked><span><strong>Perímetros observados por satélite · ESFire30</strong><small>1985–2021 · no constituyen cartografía oficial.</small></span></label>
+            <label data-source-card="egif"><input id="egif-visible" type="checkbox" checked><span><strong>Registros administrativos · EGIF</strong><small>1968–2023 · sin perímetro individual.</small></span></label>
+            <label data-source-card="icv"><input id="icv-visible" type="checkbox" checked><span><strong>Registros y perímetros oficiales · ICV</strong><small>Generalitat Valenciana · 1993–2024.</small></span></label>
+            <label data-source-card="effis"><input id="effis-visible" type="checkbox" checked><span><strong>Perímetros satelitales provisionales · EFFIS</strong><small>Copernicus EMS · 2025–2026 · datos disponibles a 19/08/2026.</small></span></label>
+          </fieldset>
+        </section>
+
+        <section class="results-section" aria-labelledby="results-title">
+          <div class="section-heading"><div><span class="section-kicker">Resultados</span><h2 id="results-title">Registros y elementos seleccionados</h2></div></div>
+
+          <section id="egif-record-browser" class="egif-record-browser" hidden aria-label="Lista paginada de registros EGIF">
+            <h3>Registros administrativos</h3>
+            <p class="source-note">Estos registros no tienen una geometría individual ni seleccionan automáticamente un perímetro del mapa.</p>
+            <details class="inline-tool">
+              <summary>Buscar por identificador</summary>
+              <form id="egif-record-lookup" class="record-lookup"><label>Identificador del registro <input id="egif-record-id" type="search" placeholder="egif-record:…" autocomplete="off"></label><button type="submit">Abrir ficha</button></form>
+            </details>
+            <div class="record-table-wrap"><table><thead><tr><th>Año</th><th>Ficha</th><th>Superficie forestal</th><th>GIF</th></tr></thead><tbody id="egif-record-rows"></tbody></table></div>
+            <nav class="record-pagination" aria-label="Paginación de registros EGIF"><button id="egif-page-previous" type="button">Anterior</button><span id="egif-page-status"></span><button id="egif-page-next" type="button">Siguiente</button></nav>
+          </section>
+
+          <section id="egif-detail" class="human-detail" data-detail-card="egif" hidden aria-live="polite">
+            <header class="detail-header"><h3 tabindex="-1">Registro de incendio <span class="source-tag">EGIF</span></h3><div><button type="button" data-detail-minimize aria-expanded="true">Minimizar</button><button type="button" data-detail-close="egif">Cerrar</button></div></header>
+            <div class="detail-human-body"><dl id="egif-human-detail-fields" class="human-detail-fields"></dl><p id="egif-human-note" class="source-note"></p></div>
+            <details class="more-data"><summary>Detalles técnicos</summary><p id="egif-detail-status">Selecciona un registro para cargar su información.</p><dl id="egif-detail-fields"></dl></details>
+          </section>
+
+          <section class="human-detail selection" data-detail-card="esfire30" aria-live="polite">
+            <header class="detail-header"><h3 tabindex="-1">Perímetro observado por satélite <span class="source-tag">ESFire30</span></h3><div><button type="button" data-detail-minimize aria-expanded="true">Minimizar</button><button type="button" data-detail-close="esfire30">Cerrar</button></div></header>
+            <div class="detail-human-body"><p id="selection-human-summary">Pulsa o toca un perímetro para conocer su año y procedencia.</p><dl id="selection-human-detail-fields" class="human-detail-fields"></dl></div>
+            <details class="more-data"><summary>Detalles técnicos</summary><p id="selection-summary">Pulsa o toca un perímetro para inspeccionarlo.</p></details>
+          </section>
+
+          <section id="icv-detail" class="human-detail selection" data-detail-card="icv" hidden aria-live="polite">
+            <header class="detail-header"><h3 tabindex="-1">Incendio oficial documentado <span class="source-tag">ICV</span></h3><div><button type="button" data-detail-minimize aria-expanded="true">Minimizar</button><button type="button" data-detail-close="icv">Cerrar</button></div></header>
+            <div class="detail-human-body"><dl id="icv-human-detail-fields" class="human-detail-fields"></dl><p id="icv-human-note" class="source-note"></p></div>
+            <details class="more-data"><summary>Detalles técnicos</summary><p id="icv-selection-summary">Pulsa o toca un perímetro oficial valenciano para inspeccionarlo.</p><dl id="icv-detail-fields"></dl></details>
+          </section>
+
+          <section id="effis-detail" class="human-detail selection" data-detail-card="effis" hidden aria-live="polite">
+            <header class="detail-header"><h3 tabindex="-1">Perímetro satelital provisional <span class="source-tag">EFFIS</span></h3><div><button type="button" data-detail-minimize aria-expanded="true">Minimizar</button><button type="button" data-detail-close="effis">Cerrar</button></div></header>
+            <div class="detail-human-body"><dl id="effis-human-detail-fields" class="human-detail-fields"></dl><p class="provisional-note">Datos provisionales; no representan el cierre anual.</p></div>
+            <details class="more-data"><summary>Detalles técnicos</summary><p id="effis-selection-summary">Pulsa o toca un perímetro satelital provisional para inspeccionarlo.</p><dl id="effis-detail-fields"></dl></details>
+          </section>
+        </section>
+
+        <details id="sources-methodology" class="sources-methodology">
+          <summary>Datos, fuentes y metodología</summary>
+          <div class="sources-content">
+            <div id="recommended-view" class="recommended-view" aria-live="polite">
+              <strong id="recommended-view-title" hidden>Contexto de los datos</strong>
+              <p id="recommended-view-copy">Preparando las fuentes adecuadas para este territorio y periodo…</p>
+            </div>
+            <p>Los registros administrativos y los perímetros son conjuntos independientes; no se suman ni implican una correspondencia automática.</p>
+            <div class="method-notes">
+              <h3>Cómo interpretar el territorio</h3>
+              <p id="territory-semantics">El ámbito resalta límites oficiales, filtra los registros administrativamente y muestra perímetros que intersectan el territorio seleccionado.</p>
+              <p id="municipality-current-note" hidden>Los límites municipales mostrados corresponden a la división administrativa actual.</p>
+              <p id="territory-status">Cargando límites administrativos…</p>
+            </div>
+            <footer class="attribution"><h3>Atribuciones</h3><p data-source="esfire30">ESFire30 Causes, UAH/CSIC, CC BY 4.0.</p><p data-source="icv">Incendios forestales de la Comunitat Valenciana (1993–2024) CC BY 4.0, Generalitat. Datos transformados para su visualización mediante reproyección, selección de atributos, particionado y simplificación geométrica.</p><p data-source="effis">European Union, Copernicus EMS / EFFIS (CC BY 4.0); selección espacial y reducción de atributos realizadas por el Atlas.</p><p data-source="protomaps">Contexto cartográfico: Protomaps · © OpenStreetMap contributors. Código Protomaps BSD-3-Clause; estilo visual CC0; tipografía Noto SIL OFL.</p><p data-source="bdlje">Obra derivada de BDLJE CC-BY 4.0 ign.es.</p></footer>
+            <div class="runtime-diagnostics" hidden aria-hidden="true"><ul id="source-coverage"></ul><p id="runtime-state-summary"></p></div>
+          </div>
+        </details>
+      </aside>
+    </main>
+    <p id="national-bootstrap-error" role="alert"></p>
+    <output id="runtime-test-output" hidden aria-hidden="true"></output>
+    <script type="module" src="bootstrap.js"></script>
+  </body>
+</html>
