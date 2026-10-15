@@ -24,6 +24,8 @@ jobs:
         run: python3 scripts/apply_worker_product_overlay.py --site site --overlay worker-product-overlay --output runner-worker-gate.json
       - name: Apply exact accepted mobile information presentation
         run: python3 scripts/apply_mobile_information_overlay.py --site site --overlay mobile-information-overlay --output runner-mobile-information-gate.json
+      - name: Apply exact physically accepted popup CSS
+        run: python3 scripts/apply_popup_ergonomics_overlay.py --site site --overlay popup-ergonomics-overlay --output runner-popup-ergonomics-gate.json
       - uses: actions/upload-artifact@v4
         with:
           name: mobile-information-runner-identity
