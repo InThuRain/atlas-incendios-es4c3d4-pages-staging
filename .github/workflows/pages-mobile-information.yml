@@ -26,7 +26,10 @@ jobs:
         run: python3 scripts/apply_mobile_information_overlay.py --site site --overlay mobile-information-overlay --output runner-mobile-information-gate.json
       - name: Apply exact physically accepted popup CSS
         run: python3 scripts/apply_popup_ergonomics_overlay.py --site site --overlay popup-ergonomics-overlay --output runner-popup-ergonomics-gate.json
+      - name: Apply exact physically accepted histogram range brush
+        run: python3 scripts/apply_histogram_brush_overlay.py --site site --overlay histogram-brush-overlay --output runner-histogram-brush-gate.json
       - uses: actions/upload-artifact@v4
+        # All overlays are verified before the Pages artifact is uploaded.
         with:
           name: mobile-information-runner-identity
           path: runner-*-gate.json
