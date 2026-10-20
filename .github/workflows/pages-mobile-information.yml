@@ -34,6 +34,8 @@ jobs:
         run: python3 scripts/apply_desktop_breadcrumb_overlay.py --site site --overlay desktop-breadcrumb-overlay --output runner-desktop-breadcrumb-gate.json
       - name: Apply exact physically accepted Period grouping
         run: python3 scripts/apply_period_grouping_overlay.py --site site --overlay period-grouping-overlay --output runner-period-grouping-gate.json
+      - name: Apply exact accepted basemap selector with approved metadata
+        run: python3 scripts/apply_basemap_selector_overlay.py --site site --overlay basemap-selector-overlay --output runner-basemap-selector-gate.json
       - uses: actions/upload-artifact@v4
         # All overlays are verified before the Pages artifact is uploaded.
         with:
